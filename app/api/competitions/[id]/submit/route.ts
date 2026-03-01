@@ -69,42 +69,48 @@ export async function POST(
       data: {
         agentId: agent.id,
         competitionId: competition.id,
-        submittedAt: new Date(),
-        code: body.code || body.content || JSON.stringify(body),
+        code: body.code || body.content || body.story || JSON.stringify(body),
         output: body.output || null,
-        executionTime: body.executionTime || body.timeSpent || null,
-        accuracyScore: score.accuracy,
-        speedScore: score.speed,
-        creativityScore: score.creativity,
-        codeQualityScore: score.codeQuality,
-        totalScore: score.total,
-        passed: score.passed,
-        metadata: body
+        metrics: {
+          ...score,
+          ...(body.timeSpent && { timeSpent: body.timeSpent }),
+          ...(body.executionTime && { executionTime: body.executionTime })
+        },
+        score: score.total,
+        accuracy: score.accuracy,
+        speed: score.speed,
+        creativity: score.creativity,
+        status: 'SCORED'
       }
     })
 
     // Update agent statistics
     await prisma.agentStatistic.upsert({
       where: {
-        agentId_competitionId: {
+        agentId_eventType: {
           agentId: agent.id,
-          competitionId: competition.id
+          eventType: competition.eventType
         }
       },
       create: {
         agentId: agent.id,
-        competitionId: competition.id,
         eventType: competition.eventType,
-        bestScore: score.total,
-        averageScore: score.total,
-        submissions: 1,
+        totalCompetitions: 1,
         wins: 0,
-        participated: true
+        podiums: 0,
+        avgScore: score.total,
+        bestScore: score.total
       },
       update: {
-        submissions: { increment: 1 },
-        bestScore: { set: score.total },
-        averageScore: { set: score.total }
+        totalCompetitions: { increment: 1 },
+        bestScore: score.total > (await prisma.agentStatistic.findUnique({
+          where: {
+            agentId_eventType: {
+              agentId: agent.id,
+              eventType: competition.eventType
+            }
+          }
+        }))?.bestScore || 0 ? score.total : undefined
       }
     })
 
@@ -236,22 +242,64 @@ function judgeCodeGolf(submission: any, criteria: any, testCases: any): any {
 }
 
 function judgeCreativeWriting(submission: any, criteria: any): any {
-  const content = submission.content || ''
-  const wordCount = submission.wordCount || content.split(/\s+/).length
+  const content = submission.content || submission.story || ''
+  const wordCount = content.split(/\s+/).filter((w: string) => w.length > 0).length
 
-  // Creative writing scoring
-  const creativityScore = Math.min(100, 50 + Math.random() * 50) // Simulated creativity
-  const coherenceScore = wordCount >= 100 && wordCount <= 600 ? 90 : 60
-  const engagementScore = content.length > 500 ? 85 : 70
+  // Word count constraints
+  const wordCountValid = wordCount > 0 && wordCount <= 500
+  const wordCountPenalty = wordCount > 500 ? Math.max(0, 100 - ((wordCount - 500) * 0.5)) : 100
 
+  // Creativity scoring (based on unique vocabulary, metaphors, imagery)
+  const words = content.toLowerCase().split(/\s+/)
+  const uniqueWords = new Set(words)
+  const vocabularyRichness = Math.min(100, (uniqueWords.size / words.length) * 150)
+  
+  // Check for creative elements
+  const hasDialogue = /"[^"]*"|'[^']*'/.test(content)
+  const hasMetaphor = /like|as if|seemed|appeared|reminded/.test(content.toLowerCase())
+  const hasImagery = /color|sound|smell|taste|feel|touch|see|hear/.test(content.toLowerCase())
+  const hasEmotion = /dream|wonder|feel|hope|fear|love|hate|joy|sad/.test(content.toLowerCase())
+  
+  const creativeElements = [hasDialogue, hasMetaphor, hasImagery, hasEmotion].filter(Boolean).length
+  const creativityScore = (vocabularyRichness * 0.5) + (creativeElements * 12.5)
+
+  // Coherence scoring (paragraph structure, sentence variety)
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim().length > 0)
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0)
+  const avgSentenceLength = words.length / Math.max(1, sentences.length)
+  
+  const hasStructure = paragraphs.length >= 3 && paragraphs.length <= 8
+  const sentenceVariety = avgSentenceLength > 8 && avgSentenceLength < 25
+  const coherenceScore = Math.min(100, 
+    (hasStructure ? 50 : 30) + 
+    (sentenceVariety ? 30 : 20) + 
+    (paragraphs.length * 5)
+  )
+
+  // Engagement scoring (story arc, conflict, resolution)
+  const hasOpening = content.length > 100
+  const hasConflict = /but|however|although|yet|struggle|challenge|problem/.test(content.toLowerCase())
+  const hasResolution = /finally|eventually|realized|understood|discovered/.test(content.toLowerCase())
+  const hasDramaticElements = /\!|—|\.\.\./.test(content)
+  
+  const engagementScore = Math.min(100,
+    (hasOpening ? 25 : 10) +
+    (hasConflict ? 30 : 15) +
+    (hasResolution ? 30 : 15) +
+    (hasDramaticElements ? 15 : 5)
+  )
+
+  // Apply weights
   const creativityWeight = criteria.creativity || 0.4
   const coherenceWeight = criteria.coherence || 0.3
   const engagementWeight = criteria.engagement || 0.3
 
-  const total = 
+  const baseScore = 
     (creativityScore * creativityWeight) +
     (coherenceScore * coherenceWeight) +
     (engagementScore * engagementWeight)
+
+  const total = Math.min(100, baseScore * (wordCountPenalty / 100))
 
   return {
     accuracy: coherenceScore,
@@ -259,7 +307,15 @@ function judgeCreativeWriting(submission: any, criteria: any): any {
     creativity: creativityScore,
     codeQuality: engagementScore,
     total,
-    passed: total >= 60
+    passed: total >= 60 && wordCountValid,
+    metrics: {
+      wordCount,
+      vocabularyRichness: Math.round(vocabularyRichness),
+      creativeElements,
+      paragraphs: paragraphs.length,
+      sentences: sentences.length,
+      avgSentenceLength: Math.round(avgSentenceLength)
+    }
   }
 }
 

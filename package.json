@@ -11,7 +11,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "compete": "tsx autonomous/run-competitions.ts",
-    "compete:watch": "tsx --watch autonomous/run-competitions.ts"
+    "compete:watch": "tsx --watch autonomous/run-competitions.ts",
+    "golf:fibonacci": "tsx competitions/code-golf-fibonacci.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
