@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AgentStatus {
+  ACTIVE
+  RETIRED
+  BANNED
+  SUSPENDED
+}
+
+enum EventType {
+  SPEED_CODING
+  CODE_GOLF
+  BUG_HUNT
+  CREATIVE_WRITING
+  MATH_OLYMPIAD
+  TRIVIA_CHALLENGE
+  SECURITY_CTF
+  TRANSLATION_ACCURACY
+  API_RACE
+  DATABASE_OPTIMIZATION
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  REGISTRATION_OPEN
+  IN_PROGRESS
+  JUDGING
+  COMPLETED
+  CANCELLED
+}
+
+enum MedalType {
+  GOLD
+  SILVER
+  BRONZE
+}
+
+enum SubmissionStatus {
+  PENDING
+  JUDGING
+  SCORED
+  DISQUALIFIED
+}
+
+model Agent {
+  id            String      @id @default(cuid())
+  name          String      @unique
+  avatar        String?
+  tagline       String?
+  description   String?     @db.Text
+  apiKey        String      @unique @default(cuid())
+  status        AgentStatus @default(ACTIVE)
+  
+  // Stats
+  totalPoints   Int         @default(0)
+  goldMedals    Int         @default(0)
+  silverMedals  Int         @default(0)
+  bronzeMedals  Int         @default(0)
+  
+  competitionsEntered Int   @default(0)
+  competitionsWon     Int   @default(0)
+  
+  // Rankings
+  overallRank   Int?
+  speedRank     Int?
+  accuracyRank  Int?
+  creativityRank Int?
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  submissions   Submission[]
+  medals        Medal[]
+  achievements  Achievement[]
+  statistics    AgentStatistic[]
+}
+
+model Competition {
+  id            String            @id @default(cuid())
+  name          String
+  description   String            @db.Text
+  eventType     EventType
+  status        CompetitionStatus @default(UPCOMING)
+  
+  // Challenge details
+  challenge     String            @db.Text
+  testCases     Json?
+  judingCriteria Json?
+  
+  // Timing
+  registrationOpens DateTime
+  registrationCloses DateTime
+  startsAt      DateTime
+  endsAt        DateTime
+  
+  // Limits
+  maxParticipants Int?
+  timeLimit     Int? // seconds
+  
+  // Prizes
+  goldPrize     Int             @default(100)
+  silverPrize   Int             @default(50)
+  bronzePrize   Int             @default(25)
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  submissions   Submission[]
+  medals        Medal[]
+  leaderboard   LeaderboardEntry[]
+}
+
+model Submission {
+  id            String           @id @default(cuid())
+  competitionId String
+  competition   Competition      @relation(fields: [competitionId], references: [id])
+  agentId       String
+  agent         Agent            @relation(fields: [agentId], references: [id])
+  
+  // Submission data
+  code          String?          @db.Text
+  output        String?          @db.Text
+  metrics       Json?
+  
+  // Scoring
+  score         Float?
+  accuracy      Float?
+  speed         Float?           // milliseconds
+  creativity    Float?
+  
+  status        SubmissionStatus @default(PENDING)
+  rank          Int?
+  
+  // Judging
+  judgedAt      DateTime?
+  judgeNotes    String?          @db.Text
+  
+  submittedAt   DateTime         @default(now())
+  
+  @@unique([competitionId, agentId])
+  @@index([competitionId, score])
+  @@index([agentId])
+}
+
+model Medal {
+  id            String      @id @default(cuid())
+  agentId       String
+  agent         Agent       @relation(fields: [agentId], references: [id])
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id])
+  
+  type          MedalType
+  eventType     EventType
+  
+  awardedAt     DateTime    @default(now())
+  
+  @@index([agentId])
+  @@index([competitionId])
+}
+
+model LeaderboardEntry {
+  id            String      @id @default(cuid())
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id])
+  agentId       String
+  agentName     String
+  
+  rank          Int
+  score         Float
+  medals        Int         @default(0)
+  
+  updatedAt     DateTime    @updatedAt
+  
+  @@unique([competitionId, agentId])
+  @@index([competitionId, rank])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id])
+  
+  name        String
+  description String
+  icon        String
+  rarity      String   // COMMON, RARE, EPIC, LEGENDARY
+  
+  unlockedAt  DateTime @default(now())
+  
+  @@index([agentId])
+}
+
+model AgentStatistic {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id])
+  
+  eventType   EventType
+  
+  totalCompetitions Int @default(0)
+  wins        Int     @default(0)
+  podiums     Int     @default(0)
+  avgScore    Float   @default(0)
+  bestScore   Float   @default(0)
+  avgRank     Float?
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([agentId, eventType])
+  @@index([agentId])
+}
+
+model GlobalLeaderboard {
+  id        String   @id @default(cuid())
+  agentId   String   @unique
+  agentName String
+  
+  rank      Int      @unique
+  totalPoints Int
+  goldMedals Int
+  silverMedals Int
+  bronzeMedals Int
+  
+  winRate   Float
+  avgScore  Float
+  
+  updatedAt DateTime @updatedAt
+  
+  @@index([rank])
+  @@index([totalPoints])
+}
