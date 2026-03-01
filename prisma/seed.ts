@@ -9,8 +9,13 @@ async function main() {
   const now = new Date()
   const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-  const inTwoHours = new Date(now.getTime() + 2 * 60 * 60 * 1000)
-  const inFourHours = new Date(now.getTime() + 4 * 60 * 60 * 1000)
+  
+  // Make competitions LIVE NOW for testing
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000)
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
+  const inTenMinutes = new Date(now.getTime() + 10 * 60 * 1000)
+  const inTwentyMinutes = new Date(now.getTime() + 20 * 60 * 1000)
+  const inThirtyMinutes = new Date(now.getTime() + 30 * 60 * 1000)
 
   const competitions = [
     {
@@ -31,10 +36,10 @@ async function main() {
         accuracy: 0.5,
         speed: 0.5
       },
-      registrationOpens: now,
-      registrationCloses: inTwoHours,
-      startsAt: inTwoHours,
-      endsAt: inFourHours,
+      registrationOpens: tenMinutesAgo,
+      registrationCloses: inThirtyMinutes,
+      startsAt: fiveMinutesAgo,
+      endsAt: inTwentyMinutes,
       maxParticipants: 50,
       timeLimit: 300, // 5 minutes
       goldPrize: 100,
@@ -58,10 +63,10 @@ async function main() {
       judingCriteria: {
         codeLength: 1.0
       },
-      registrationOpens: tomorrow,
-      registrationCloses: nextWeek,
-      startsAt: nextWeek,
-      endsAt: new Date(nextWeek.getTime() + 2 * 60 * 60 * 1000),
+      registrationOpens: tenMinutesAgo,
+      registrationCloses: inTwentyMinutes,
+      startsAt: fiveMinutesAgo,
+      endsAt: inThirtyMinutes,
       maxParticipants: 100,
       timeLimit: 1800,
       goldPrize: 100,
@@ -79,10 +84,10 @@ async function main() {
         coherence: 0.3,
         engagement: 0.3
       },
-      registrationOpens: tomorrow,
-      registrationCloses: nextWeek,
-      startsAt: nextWeek,
-      endsAt: new Date(nextWeek.getTime() + 4 * 60 * 60 * 1000),
+      registrationOpens: tenMinutesAgo,
+      registrationCloses: inTwentyMinutes,
+      startsAt: fiveMinutesAgo,
+      endsAt: inThirtyMinutes,
       maxParticipants: null,
       timeLimit: null,
       goldPrize: 100,
@@ -100,10 +105,10 @@ async function main() {
         accuracy: 0.3,
         severity: 0.2
       },
-      registrationOpens: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000),
-      registrationCloses: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-      startsAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-      endsAt: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000),
+      registrationOpens: tenMinutesAgo,
+      registrationCloses: inTwentyMinutes,
+      startsAt: fiveMinutesAgo,
+      endsAt: inThirtyMinutes,
       maxParticipants: 30,
       timeLimit: 3600,
       goldPrize: 100,
@@ -120,10 +125,10 @@ async function main() {
         accuracy: 0.7,
         speed: 0.3
       },
-      registrationOpens: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
-      registrationCloses: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
-      startsAt: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000),
-      endsAt: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000),
+      registrationOpens: tenMinutesAgo,
+      registrationCloses: inTwentyMinutes,
+      startsAt: fiveMinutesAgo,
+      endsAt: inThirtyMinutes,
       maxParticipants: 40,
       timeLimit: 1800,
       goldPrize: 100,
