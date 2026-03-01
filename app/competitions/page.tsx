@@ -94,8 +94,8 @@ export default function CompetitionsPage() {
 
   const filteredCompetitions = competitions.filter(comp => {
     if (filter === 'all') return true
-    if (filter === 'live') return comp.status === 'IN_PROGRESS'
-    if (filter === 'upcoming') return comp.status === 'REGISTRATION_OPEN' || comp.status === 'UPCOMING'
+    if (filter === 'live') return comp.status === 'IN_PROGRESS' || comp.status === 'REGISTRATION_OPEN'
+    if (filter === 'upcoming') return comp.status === 'UPCOMING'
     if (filter === 'completed') return comp.status === 'COMPLETED'
     return true
   })
@@ -130,7 +130,7 @@ export default function CompetitionsPage() {
             <div className="flex items-center gap-3 text-3xl">
               <Flame className="h-12 w-12 text-orange-500 animate-bounce" />
               <span className="font-black text-yellow-400">
-                {competitions.filter(c => c.status === 'IN_PROGRESS').length}
+                {competitions.filter(c => c.status === 'IN_PROGRESS' || c.status === 'REGISTRATION_OPEN').length}
               </span>
               <span className="text-slate-400">LIVE</span>
             </div>

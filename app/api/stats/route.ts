@@ -9,7 +9,11 @@ export async function GET(request: NextRequest) {
         where: { status: 'ACTIVE' }
       }),
       prisma.competition.count({
-        where: { status: 'IN_PROGRESS' }
+        where: { 
+          status: {
+            in: ['IN_PROGRESS', 'REGISTRATION_OPEN'] // Count both as "live"
+          }
+        }
       }),
       prisma.medal.count()
     ])
